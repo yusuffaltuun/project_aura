@@ -1,6 +1,8 @@
 import torch 
 from torch.utils.data import Dataset
 from src.data.tokenizer import AuraTokenizer
+from torch.utils.data import DataLoader
+
 
 
 class AuraDataset(Dataset):
@@ -18,24 +20,48 @@ class AuraDataset(Dataset):
 
     def __getitem__(self,idx):
               return self.input_ids[idx] , self.target_ids[idx]
+    
 
+
+def create_dataloader(text: str, tokenizer: AuraTokenizer, max_length: int, stride: int, batch_size: int, shuffle: bool = True):
+    dataset = AuraDataset(text, tokenizer, max_length, stride)
+    
+    
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        drop_last=True 
+    )
+    
+    return dataloader
 
 
 if __name__ == "__main__":
     tokenizer = AuraTokenizer()
-    simple_text = "Aura projesi adım adım büyüyor."
+    simple_text = "Aura projesi adım adım büyüyor ve harika bir veri hattına sahip oluyor."
     
-    dataset = AuraDataset(simple_text, tokenizer, max_length=3, stride=2)
+    # DataLoader oluşturuyoruz: max_length=4, stride=1, batch_size=2
+    dataloader = create_dataloader(
+        text=simple_text,
+        tokenizer=tokenizer,
+        max_length=4,
+        stride=1,
+        batch_size=2,
+        shuffle=False  # Test ederken sırayı karıştırmayalım ki çıktıyı rahat okuyalım
+    )
     
-    print(f"Toplam Veri Çifti Sayısı: {len(dataset)}")
-    print("-" * 40)
+    print(f"Toplam Batch (Grup) Sayısı: {len(dataloader)}")
+    print("-" * 50)
     
-    # İlk iki çifti döngüyle çekip inceleyelim
-    for i in range(min(2, len(dataset))):
-        x, y = dataset[i]
-        print(f"Örnek {i + 1}:")
-        print(f"  Girdi (x) Tensor: {x}")
-        print(f"  Hedef (y) Tensor: {y}")
-        print(f"  Girdi Kelimeleri: {tokenizer.decode(x.tolist())}")
-        print(f"  Hedef Kelimeleri: {tokenizer.decode(y.tolist())}")
-        print("-" * 40)
+    # İlk grubu (batch) çekip inceleyelim
+    for x_batch, y_batch in dataloader:
+        print("Batch Girdi Matrisi (X Boyutu):", x_batch.shape)
+        print("Batch Hedef Matrisi (Y Boyutu):", y_batch.shape)
+        print("\nGirdi Matrisi (X):")
+        print(x_batch)
+        print("\nHedef Matrisi (Y):")
+        print(y_batch)
+        
+        # İlk batch'ten sonra döngüyü kıralım, tek bir tanesini incelemek yeterli
+        break
