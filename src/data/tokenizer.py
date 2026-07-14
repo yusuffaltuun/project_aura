@@ -6,28 +6,15 @@ import re
 
 
 
-class SimpleTokenizer:
-    def __init__(self, vocab):
-        self.str_to_int = vocab
-        self.int_to_str = { i:s for s,i in vocab.items()}   
-    def encode(self, text):
-        preprocessed = re.split(r'([,.:;?_!"()\']|--|\s)', text)
-        preprocessed = [
-            item.strip() for item in preprocessed if item.strip()
-    ]   
-        preprocessed = [item if item in self.str_to_int
-            else "<|unk|>" for item in preprocessed]
-        ids = [self.str_to_int[s] for s in preprocessed]
-        return ids
-    
-    def decode(self, ids):
-        text = " ".join([self.int_to_str[i] for i in ids])
-        text = re.sub(r'\s+([,.:;?!"()\'])', r'\1', text)
-        return text
-    
-tokenizer = tiktoken.get_encoding("gpt2")
 
 
+def _clean_text(self, txt: str) -> str:
+        if not txt:
+            return ""
+        # 1. Görünmez kontrol karakterlerini temizleyelim
+        txt = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', txt)
+        # 2. Metnin başındaki ve sonundaki gereksiz boşlukları kırpalım
+        return txt.strip()
 
 class AuraTokenizer:
     def __init__(self) -> None:
@@ -37,6 +24,8 @@ class AuraTokenizer:
     def encode(self,txt):
         if not txt:
             return []
+        
+        txt = self._clean_text(txt)
         tokens = self.encoder.encode(txt)
         if len(tokens) > settings.model.context_length:
             tokens = tokens[:settings.model.context_length]
@@ -49,7 +38,25 @@ class AuraTokenizer:
             return ""
         text = self.encoder.decode(tokens)
         return text
+    
+    def _clean_text(self, txt: str) -> str:
+        if not txt:
+            return ""
+        # 1. Görünmez kontrol karakterlerini temizleyelim
+        txt = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', txt)
+        # 2. Metnin başındaki ve sonundaki gereksiz boşlukları kırpalım
+        return txt.strip()
         
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -59,7 +66,8 @@ if __name__ == "__main__":
     # Sınıfımızı ayağa kaldıralım
     tokenizer = AuraTokenizer()
     
-    test_metni = "Merhaba Yusuf, Aura projesi ilk adımlarını başarıyla atıyor!"
+    # Başında ve sonunda boşluklar, ortasında ise görünmez \x00 karakteri olan kirli bir metin:
+    test_metni = "   Merhaba Yusuf\x00, Aura projesi ilk adımlarını başarıyla atıyor!   "
     print(f"\n[Orijinal Metin]: {test_metni}")
     
     # Sayılara çevirelim (encode)
